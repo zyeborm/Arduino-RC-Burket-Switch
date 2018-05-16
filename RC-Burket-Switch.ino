@@ -1,7 +1,7 @@
 // Servo switch for burkett valves
 // Jake Anderson 2018-05-14
 // Don't kill yourself with it, let me know if you use it.
-// This is set up for digital radios so it's very intollerant of bad signals
+// This is set up for digital radios so it's very intolerant of bad signals
 // Designed for an arduino nano, serial rate is 115200
 // fast LED flashes during startup with RX of valid signal
 // Slower LED flashes during operation with rx of valid signal
