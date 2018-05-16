@@ -10,9 +10,9 @@
 #define Version 0.21
 
 // I/O setup
-#define RCInputPin 5 // pin the reciever is connected to
+#define RCInputPin 2 // pin the reciever is connected to
 #define LEDOutPin 13 // pin the status LED is connected to
-#define ValveOutPin 8 // pin the fet switch to run the burket is connected to
+#define ValveOutPin 4 // pin the fet switch to run the burket is connected to
 
 // Tuning
 #define TriggerPoint 1250 // 1250 what pulsewidth value do we need to fire (in microsconds - between 1000 and 2000 generally)
