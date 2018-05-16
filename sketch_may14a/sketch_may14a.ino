@@ -7,7 +7,7 @@
 // Slower LED flashes during operation with rx of valid signal
 // designed for 50 PPS servo signals 1-2ms long
 
-#define Version 0.2
+#define Version 0.21
 
 // I/O setup
 #define RCInputPin 5 // pin the reciever is connected to
@@ -33,10 +33,12 @@ bool SignalGood = false; // have we recieved enough good servo pulses to trust t
 void setup() {
   //spew serial stuff identifying the state and requirements for operation
   //then wait for StartupPulsesRequired (200) pulses between MinPulse (900) and TriggerPoint (1250) before leaving the init
-  
+
   byte StartupPulses = 0;
+  byte zeros = 0; // stop spewing zeros at startup with no signal
+
   int ch1; // Servo input values, in microseconds so use int
-  
+
   pinMode(RCInputPin, INPUT); // Set our input pins as such
   pinMode(LEDOutPin, OUTPUT); // Set our output pins as such
   pinMode(ValveOutPin, OUTPUT); // Set our output pins as such
@@ -69,11 +71,18 @@ void setup() {
       }
     } else {
       // invalid signal recieved
-      
-      StartupPulses = 0;
-      
-      Serial.print("Bad Pulse Rx :");
-      Serial.println(ch1);
+      if (ch1 == 0) {  // we get lots of zeros until the Rx has locked on
+        zeros++;
+        StartupPulses = 0;
+
+        if (zeros % 64 == 0) {
+          Serial.println("Zero input");
+        }
+      } else {
+        StartupPulses = 0;
+        Serial.print("Bad Pulse Rx :");
+        Serial.println(ch1);
+      }
     }
   }
 
@@ -82,9 +91,9 @@ void setup() {
   Serial.println("Armed");
 }
 
-void print_status(int PulseDuration,byte LowTimes,byte FireSafetyVal) {
+void print_status(int PulseDuration, byte LowTimes, byte FireSafetyVal) {
   //prints some internal state, takes ValidPulseTrain and SignalGood from globals
-       
+
   Serial.print("PulseWidth : ");
   Serial.print(PulseDuration);
   Serial.print(" : LowTime : ");
@@ -93,7 +102,7 @@ void print_status(int PulseDuration,byte LowTimes,byte FireSafetyVal) {
   Serial.print(FireSafetyVal);
   Serial.print(" : ValidPulseTrain : ");
   Serial.print(ValidPulseTrain);
-  
+
   if (SignalGood) {
     Serial.println(" Signal OK");
   } else {
@@ -106,41 +115,41 @@ void loop() {
   static byte FireSafety = 0; //require 3 high servo pulses before firing, prevent misfires
   static byte filter = 0; // used to only write out infrequently
   static bool PreFireFlag = false; //used during prefire to ensure sequential pulses not just noise
-  
-  int ch1; // Servo input values, in microseconds so use int  
+
+  int ch1; // Servo input values, in microseconds so use int
 
 
 
   //occasionally print status updates
   filter++;
   if (filter % FilterMod == 0) { // only print every nth time
-    print_status(ch1,LowTime,FireSafety);
+    print_status(ch1, LowTime, FireSafety);
     if (SignalGood) {
       digitalWrite(LEDOutPin, !digitalRead(LEDOutPin));  //slower toggle LED pin during operation with good signal
     }
   }
 
-  
+
   ch1 = pulseIn(RCInputPin, HIGH, 40000); // Read the pulse width of the servo, needs to be long because it spends most of it's time off.
   //2ms max on time * 50 pps = 100ms maximum on time per second.
 
   if ((ch1 > MinPulse) && (ch1 < MaxPulse)) {  // if signal is in range
     if (ValidPulseTrain < SignalLimit) {      // and if we are recovering from a bad pulse
-        ValidPulseTrain++;                    // then add one to the valid pulse train
-    } 
-  } else{
-    SignalGood=false;                        //if the signal is out of range then kill everything for a while
+      ValidPulseTrain++;                    // then add one to the valid pulse train
+    }
+  } else {
+    SignalGood = false;                      //if the signal is out of range then kill everything for a while
     ValidPulseTrain = 0;
   }
 
 
-  if (ValidPulseTrain == 10){     //we have recieved at least SignalLimit of valid pulses in a row so signal is good
-    SignalGood = true;   
+  if (ValidPulseTrain == 10) {    //we have recieved at least SignalLimit of valid pulses in a row so signal is good
+    SignalGood = true;
   }
-  
-  if (SignalGood) { 
+
+  if (SignalGood) {
     //we are happy with the radio reception, do the actual processing
-    
+
     if ((ch1 >= TriggerPoint) && (LowTime >= 10)) { // if it's been low for a while then allow fire
       Serial.print("PreFire! : Pulsewidth = ");
       Serial.println(ch1);
